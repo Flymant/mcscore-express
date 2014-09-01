@@ -1,0 +1,26 @@
+.form {
+    position: relative;
+    top: 50px;
+}
+table tr td {
+    text-align: right;
+}
+.form div {
+    margin-top: 10px;
+    color: red;
+    text-align: center;
+}
+.form button {
+    width: 50px;
+}
+
+table {
+  border-spacing: 5px;
+}
+
+table td:nth-of-type(1) {
+  text-align: right;
+}
+table td:nth-of-type(2) {
+  text-align: center;
+}

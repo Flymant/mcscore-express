@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>toy</title>
+</head>
+<body>
+<canvas id="main"></canvas>
+<script type="text/javascript">
+  var canvas = document.getElementById("main");
+  canvas.width = 500;
+  canvas.height = 500;
+  var ctx = canvas.getContext("2d");
+
+  var shakeHead = function() {
+    ctx.beginPath();
+    ctx.arc(250, 70, 50, 0, Math.PI*2, false);
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
+  }
+
+  var wringNect = function() {
+    ctx.beginPath();
+    ctx.moveTo(255, 120);
+    ctx.lineTo(255, 170);
+    ctx.stroke();
+  }
+
+  var twistBody = function() {
+    ctx.beginPath();
+    ctx.strokeRect(200, 170, 100, 100);
+  }
+
+  var waveHands = function() {
+    ctx.beginPath();
+    ctx.moveTo(200, 170);
+    var leftElbowX = 200 + (Math.random() < 0.5 ? 1 : -1) * 100 * Math.random();
+    var leftElbowY = 170 + (Math.random() < 0.5 ? 1 : -1) * Math.sqrt(Math.pow(100, 2) - Math.pow(200-leftElbowX, 2));
+    ctx.lineTo(leftElbowX, leftElbowY);
+    var leftHandX = leftElbowX + (Math.random() < 0.5 ? 1 : -1) * 120 * Math.random();
+    var leftHandY = leftElbowY + (Math.random() < 0.5 ? 1 : -1) * Math.sqrt(Math.pow(120, 2) - Math.pow(leftElbowX-leftHandX, 2));
+    ctx.lineTo(leftHandX, leftHandY);
+
+    ctx.moveTo(300, 170);
+    var rightElbowX = 300 + 100 * Math.random();
+    var rightElbowY = 170 + (Math.random() < 0.5 ? 1 : -1) * Math.sqrt(Math.pow(100, 2) - Math.pow(rightElbowX-300, 2));
+    ctx.lineTo(rightElbowX, rightElbowY);
+    var rightHandX = rightElbowX + 120 * Math.random();
+    var rightHandY = rightElbowY + (Math.random() < 0.5 ? 1 : -1) * Math.sqrt(Math.pow(120, 2) - Math.pow(rightHandX - rightElbowX, 2));
+    ctx.lineTo(rightHandX, rightHandY);
+    ctx.stroke();
+
+  }
+
+  var kickLegs = function() {
+    ctx.beginPath();
+    ctx.moveTo(225, 270);
+    ctx.lineTo(180, 400);
+
+    ctx.moveTo(275, 270);
+    ctx.lineTo(320, 400);
+    ctx.stroke();
+  }
+
+  function drawKid() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    shakeHead();
+    wringNect();
+    twistBody();
+    waveHands();
+    kickLegs();
+  }
+
+  function kidDance(analyser) {
+    var dance = function() {
+      var array = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(array);
+      if(array[0] > 190 || array[1] > 190) {
+        drawKid();
+      }
+      requestAnimationFrame(dance);
+    }
+    requestAnimationFrame(dance);
+  }
+
+
+  function AudioVisualizer(options) {
+
+    this.options = {
+      visualInit: null,
+      visualEffect: null,
+      loadSongError: function() {
+        alert("load song error");
+      }
+    };
+
+    var mix = function(srcObj, dstObj){
+      for(m in srcObj){
+        typeof(srcObj[m]) == "object" ?
+        mix(srcObj[m], dstObj[m]) : dstObj[m] = srcObj[m];
+      }
+    }
+
+    mix(options, this.options);
+
+    this.AudioContext = null;
+    this.context = null;
+
+    this.createContext();
+  }
+
+  AudioVisualizer.prototype.createContext = function() {
+    try{
+      this.AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.context = new this.AudioContext();
+      return true;
+    }
+    catch(err) {
+      return false;
+    }
+  }
+
+  AudioVisualizer.prototype.playSound = function(buffer, time) {
+    var source = this.context.createBufferSource();
+    var analyser = this.context.createAnalyser();
+
+    source.connect(analyser);
+    analyser.connect(this.context.destination);
+
+    source.buffer = buffer;
+    source.start(time ? time : 0);
+    typeof(this.options.visualEffect) == "function" &&
+    this.options.visualEffect(analyser);
+  }
+
+
+  AudioVisualizer.prototype.decode = function(target) {
+    var self = this;
+    try{
+      self.context.decodeAudioData(target,
+        function(buffer) {
+          self.playSound(buffer);
+        },
+        function() {
+          typeof self.options.loadSongError == "function"
+          && self.options.loadSongError();
+      });
+    }
+    catch(err) {
+      typeof self.options.loadSongError == "function"
+      && self.options.loadSongError();
+    }
+  }
+
+  AudioVisualizer.prototype.loadSound = function(url) {
+    var self = this;
+    typeof(self.options.visualInit) == "function" &&
+    self.options.visualInit();
+
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
+
+    request.onload = function() {
+      self.decode(request.response);
+    }
+    request.send();
+  }
+
+  window.onload = function() {
+    var visualizer = new AudioVisualizer({
+      visualInit: drawKid,
+      visualEffect: kidDance
+    });
+    visualizer.loadSound("/media/eagles.mp3");
+  }
+
+</script>
+</body>
+</html>
